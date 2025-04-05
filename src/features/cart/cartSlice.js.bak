@@ -1,0 +1,293 @@
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { cartAPI } from '../../services/api';
+
+export const fetchCart = createAsyncThunk(
+  'cart/fetchCart',
+  async (_, { rejectWithValue }) => {
+    try {
+      console.log('fetchCart - Fetching cart data...');
+      const response = await cartAPI.getCart();
+      console.log('fetchCart - Response:', response.data);
+      
+      // Check if the response has the expected structure
+      if (!response.data || !Array.isArray(response.data)) {
+        console.error('fetchCart - Unexpected response structure:', response.data);
+        return rejectWithValue({ message: 'Invalid cart data structure' });
+      }
+      
+      // Calculate total from items
+      const total = response.data.reduce((sum, item) => {
+        return sum + (item.product?.price || 0) * (item.quantity || 1);
+      }, 0);
+      
+      return {
+        items: response.data,
+        total
+      };
+    } catch (error) {
+      console.error('fetchCart - Error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch cart' });
+    }
+  }
+);
+
+export const addToCart = createAsyncThunk(
+  'cart/addToCart',
+  async ({ productId, quantity }, { rejectWithValue }) => {
+    try {
+      // Check if token exists
+      const token = localStorage.getItem('token');
+      console.log('addToCart - Token check:', token ? 'Present' : 'Missing');
+      
+      if (!token) {
+        console.error('addToCart - No token found in localStorage');
+        return rejectWithValue({ 
+          message: 'Authentication required. Please log in.',
+          status: 401
+        });
+      }
+      
+      console.log('addToCart - Attempting to add product:', { product: productId, quantity });
+      const response = await cartAPI.addToCart(productId, quantity);
+      console.log('addToCart - Success response:', response.data);
+      
+      // Handle the new response structure
+      if (response.data && response.data.cart) {
+        console.log('addToCart - Using cart from response:', response.data.cart);
+        
+        // Check if cart.items exists and is an array
+        if (!response.data.cart.items || !Array.isArray(response.data.cart.items)) {
+          console.error('addToCart - Cart items is not an array:', response.data.cart);
+          return rejectWithValue({ message: 'Invalid cart data structure' });
+        }
+        
+        return {
+          items: response.data.cart.items,
+          total: response.data.cart.total || 0
+        };
+      } else if (response.data && Array.isArray(response.data)) {
+        // Fallback to the old structure if the response is an array
+        console.log('addToCart - Using array response as items');
+        
+        // Calculate total from items
+        const total = response.data.reduce((sum, item) => {
+          return sum + (item.product?.price || 0) * (item.quantity || 1);
+        }, 0);
+        
+        return {
+          items: response.data,
+          total
+        };
+      } else {
+        console.error('addToCart - Unexpected response structure:', response.data);
+        return rejectWithValue({ message: 'Invalid cart data structure' });
+      }
+    } catch (error) {
+      console.error('addToCart - Error details:', {
+        status: error.response?.status,
+        message: error.response?.data?.message || error.message,
+        data: error.response?.data
+      });
+      
+      // Handle authentication errors
+      if (error.response?.status === 401) {
+        console.error('addToCart - Authentication error detected');
+        return rejectWithValue({ 
+          message: 'Authentication required. Please log in again.',
+          status: 401
+        });
+      }
+      
+      return rejectWithValue(error.response?.data || { 
+        message: 'Failed to add item to cart',
+        status: error.response?.status
+      });
+    }
+  }
+);
+
+export const updateCartItem = createAsyncThunk(
+  'cart/updateCartItem',
+  async ({ itemId, quantity }, { rejectWithValue }) => {
+    try {
+      console.log('updateCartItem - Updating item:', { itemId, quantity });
+      const response = await cartAPI.updateCartItem(itemId, quantity);
+      console.log('updateCartItem - Success response:', response.data);
+      
+      // Handle the new response structure
+      if (response.data && response.data.cart) {
+        console.log('updateCartItem - Using cart from response:', response.data.cart);
+        
+        // Check if cart.items exists and is an array
+        if (!response.data.cart.items || !Array.isArray(response.data.cart.items)) {
+          console.error('updateCartItem - Cart items is not an array:', response.data.cart);
+          return rejectWithValue({ message: 'Invalid cart data structure' });
+        }
+        
+        return {
+          items: response.data.cart.items,
+          total: response.data.cart.total || 0
+        };
+      } else if (response.data && Array.isArray(response.data)) {
+        // Fallback to the old structure if the response is an array
+        console.log('updateCartItem - Using array response as items');
+        
+        // Calculate total from items
+        const total = response.data.reduce((sum, item) => {
+          return sum + (item.product?.price || 0) * (item.quantity || 1);
+        }, 0);
+        
+        return {
+          items: response.data,
+          total
+        };
+      } else {
+        console.error('updateCartItem - Unexpected response structure:', response.data);
+        return rejectWithValue({ message: 'Invalid cart data structure' });
+      }
+    } catch (error) {
+      console.error('updateCartItem - Error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data || { message: 'Failed to update cart item' });
+    }
+  }
+);
+
+export const removeFromCart = createAsyncThunk(
+  'cart/removeFromCart',
+  async (itemId, { rejectWithValue }) => {
+    try {
+      console.log('removeFromCart - Removing item:', itemId);
+      const response = await cartAPI.removeFromCart(itemId);
+      console.log('removeFromCart - Success response:', response.data);
+      
+      // Handle the new response structure
+      if (response.data && response.data.cart) {
+        console.log('removeFromCart - Using cart from response:', response.data.cart);
+        
+        // Check if cart.items exists and is an array
+        if (!response.data.cart.items || !Array.isArray(response.data.cart.items)) {
+          console.error('removeFromCart - Cart items is not an array:', response.data.cart);
+          return rejectWithValue({ message: 'Invalid cart data structure' });
+        }
+        
+        return {
+          items: response.data.cart.items,
+          total: response.data.cart.total || 0
+        };
+      } else if (response.data && Array.isArray(response.data)) {
+        // Fallback to the old structure if the response is an array
+        console.log('removeFromCart - Using array response as items');
+        
+        // Calculate total from items
+        const total = response.data.reduce((sum, item) => {
+          return sum + (item.product?.price || 0) * (item.quantity || 1);
+        }, 0);
+        
+        return {
+          items: response.data,
+          total
+        };
+      } else {
+        console.error('removeFromCart - Unexpected response structure:', response.data);
+        return rejectWithValue({ message: 'Invalid cart data structure' });
+      }
+    } catch (error) {
+      console.error('removeFromCart - Error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data || { message: 'Failed to remove item from cart' });
+    }
+  }
+);
+
+export const clearCart = createAsyncThunk(
+  'cart/clearCart',
+  async (_, { rejectWithValue }) => {
+    try {
+      console.log('clearCart - Clearing cart...');
+      const response = await cartAPI.clearCart();
+      console.log('clearCart - Success response:', response.data);
+      return { items: [], total: 0 };
+    } catch (error) {
+      console.error('clearCart - Error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data || { message: 'Failed to clear cart' });
+    }
+  }
+);
+
+const initialState = {
+  items: [],
+  loading: false,
+  error: null,
+  total: 0,
+};
+
+const cartSlice = createSlice({
+  name: 'cart',
+  initialState,
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      // Fetch Cart
+      .addCase(fetchCart.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchCart.fulfilled, (state, action) => {
+        state.loading = false;
+        state.items = action.payload.items;
+        state.total = action.payload.total;
+      })
+      .addCase(fetchCart.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || 'Failed to fetch cart';
+      })
+      // Add to Cart
+      .addCase(addToCart.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(addToCart.fulfilled, (state, action) => {
+        state.loading = false;
+        state.items = action.payload.items;
+        state.total = action.payload.total;
+      })
+      .addCase(addToCart.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || 'Failed to add item to cart';
+      })
+      // Update Cart Item
+      .addCase(updateCartItem.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateCartItem.fulfilled, (state, action) => {
+        state.loading = false;
+        state.items = action.payload.items;
+        state.total = action.payload.total;
+      })
+      .addCase(updateCartItem.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || 'Failed to update cart item';
+      })
+      // Remove from Cart
+      .addCase(removeFromCart.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(removeFromCart.fulfilled, (state, action) => {
+        state.loading = false;
+        state.items = action.payload.items;
+        state.total = action.payload.total;
+      })
+      .addCase(removeFromCart.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || 'Failed to remove item from cart';
+      })
+      // Clear Cart
+      .addCase(clearCart.fulfilled, (state) => {
+        state.items = [];
+        state.total = 0;
+      });
+  },
+});
+
+export default cartSlice.reducer; 
