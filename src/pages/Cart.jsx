@@ -128,6 +128,20 @@ export default function Cart() {
     return 'Uncategorized';
   };
 
+  const isOutOfStock = (item) => {
+    // Check if the product exists and has stock information
+    if (!item.product) return true;
+    
+    // Check if stockStatus is explicitly "Out of Stock"
+    if (item.product.stockStatus === "Out of Stock") return true;
+    
+    // Check if quantity is 0 or less
+    if (item.product.quantity <= 0) return true;
+    
+    // If we get here, the item is in stock
+    return false;
+  };
+
   if (loading) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24 lg:max-w-7xl lg:px-8">
@@ -195,8 +209,8 @@ export default function Cart() {
                     </div>
                     <p className="mt-1 text-sm text-gray-500">{getCategoryName(item.product?.category)}</p>
                     <p className="mt-1 text-sm">
-                      <span className={`font-medium ${item.product?.inStock ? 'text-green-600' : 'text-red-600'}`}>
-                        {item.product?.inStock ? 'In Stock' : 'Out of Stock'}
+                      <span className={`font-medium ${isOutOfStock(item) ? 'text-red-600' : 'text-green-600'}`}>
+                        {isOutOfStock(item) ? 'Out of Stock' : 'In Stock'}
                       </span>
                     </p>
                   </div>

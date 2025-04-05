@@ -56,6 +56,20 @@ export default function ProductDetails() {
     }
   };
 
+  const isOutOfStock = (product) => {
+    // Check if the product exists and has stock information
+    if (!product) return true;
+    
+    // Check if stockStatus is explicitly "Out of Stock"
+    if (product.stockStatus === "Out of Stock") return true;
+    
+    // Check if quantity is 0 or less
+    if (product.quantity <= 0) return true;
+    
+    // If we get here, the item is in stock
+    return false;
+  };
+
   if (loading) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24 lg:max-w-7xl lg:px-8">
@@ -184,6 +198,12 @@ export default function ProductDetails() {
               <h3 className="text-sm text-gray-900">Category:</h3>
               <p className="ml-2 text-sm text-gray-500">{getCategoryName(product.category)}</p>
             </div>
+          </div>
+
+          <div className="mt-4">
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isOutOfStock(product) ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+              {isOutOfStock(product) ? 'Out of Stock' : 'In Stock'}
+            </span>
           </div>
 
           <div className="mt-10 flex">

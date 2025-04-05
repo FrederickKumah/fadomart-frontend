@@ -1,29 +1,25 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { fetchOrders } from '../features/orders/ordersSlice';
+import { fetchUserOrders } from '../features/orders/ordersSlice';
+import { formatDate } from '../utils/dateUtils';
 
 export default function Orders() {
   const dispatch = useDispatch();
   const { orders, loading, error } = useSelector((state) => state.orders);
 
   useEffect(() => {
-    dispatch(fetchOrders());
+    dispatch(fetchUserOrders());
   }, [dispatch]);
 
   if (loading) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24 lg:max-w-7xl lg:px-8">
         <div className="animate-pulse space-y-4">
-          {[...Array(3)].map((_, index) => (
-            <div key={index} className="border rounded-lg p-4">
-              <div className="h-4 bg-gray-200 rounded w-1/4" />
-              <div className="mt-2 space-y-2">
-                <div className="h-4 bg-gray-200 rounded w-3/4" />
-                <div className="h-4 bg-gray-200 rounded w-1/2" />
-              </div>
-            </div>
-          ))}
+          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+          <div className="h-4 bg-gray-200 rounded w-full"></div>
+          <div className="h-4 bg-gray-200 rounded w-full"></div>
+          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
         </div>
       </div>
     );
@@ -33,29 +29,33 @@ export default function Orders() {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24 lg:max-w-7xl lg:px-8">
         <div className="text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900">Error loading orders</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900">Error Loading Orders</h2>
           <p className="mt-4 text-gray-500">{error}</p>
+          <button
+            onClick={() => dispatch(fetchUserOrders())}
+            className="mt-6 inline-block rounded-md bg-blue-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );
   }
 
-  if (orders.length === 0) {
+  if (!orders || orders.length === 0) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24 lg:max-w-7xl lg:px-8">
         <div className="text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900">No orders yet</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900">No Orders Found</h2>
           <p className="mt-4 text-gray-500">
-            When you make a purchase, your orders will appear here.
+            You haven't placed any orders yet. Start shopping to create your first order!
           </p>
-          <div className="mt-6">
-            <Link
-              to="/products"
-              className="btn-primary inline-flex items-center justify-center"
-            >
-              Start Shopping
-            </Link>
-          </div>
+          <Link
+            to="/products"
+            className="mt-6 inline-block rounded-md bg-blue-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+          >
+            Browse Products
+          </Link>
         </div>
       </div>
     );
@@ -63,59 +63,93 @@ export default function Orders() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24 lg:max-w-7xl lg:px-8">
-      <h1 className="text-2xl font-bold tracking-tight text-gray-900">Order History</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-gray-900">Your Orders</h1>
       <div className="mt-8 space-y-8">
         {orders.map((order) => (
-          <div key={order.id} className="border rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-medium text-gray-900">Order #{order.id}</h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  Placed on {new Date(order.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-lg font-medium text-gray-900">GHS {order.total}</p>
-                <p className="mt-1 text-sm text-gray-500">{order.status}</p>
+          <div key={order._id} className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div className="px-4 py-5 sm:px-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">Order #{order._id}</h3>
+                  <p className="mt-1 max-w-2xl text-sm text-gray-500">
+                    Placed on {formatDate(order.createdAt)}
+                  </p>
+                </div>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  order.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                  order.status === 'Processing' ? 'bg-blue-100 text-blue-800' :
+                  order.status === 'Paid' ? 'bg-green-100 text-green-800' :
+                  order.status === 'Shipped' ? 'bg-purple-100 text-purple-800' :
+                  order.status === 'Delivered' ? 'bg-green-100 text-green-800' :
+                  order.status === 'Cancelled' ? 'bg-red-100 text-red-800' :
+                  order.status === 'Refunded' ? 'bg-gray-100 text-gray-800' :
+                  'bg-gray-100 text-gray-800'
+                }`}>
+                  {order.status}
+                </span>
               </div>
             </div>
-
-            <div className="mt-6">
-              <h3 className="text-sm font-medium text-gray-900">Items</h3>
-              <ul role="list" className="mt-4 divide-y divide-gray-200">
-                {order.items.map((item) => (
-                  <li key={item.id} className="flex py-4">
-                    <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
-                      <img
-                        src={item.product.image}
-                        alt={item.product.name}
-                        className="h-full w-full object-cover object-center"
-                      />
-                    </div>
-
-                    <div className="ml-4 flex flex-1 flex-col">
-                      <div>
-                        <div className="flex justify-between text-base font-medium text-gray-900">
-                          <h4>{item.product.name}</h4>
-                          <p className="ml-4">GHS {item.product.price * item.quantity}</p>
-                        </div>
-                        <p className="mt-1 text-sm text-gray-500">Qty {item.quantity}</p>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+            <div className="border-t border-gray-200">
+              <dl>
+                <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt className="text-sm font-medium text-gray-500">Total Amount</dt>
+                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">GHS {order.totalPrice}</dd>
+                </div>
+                <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt className="text-sm font-medium text-gray-500">Shipping Address</dt>
+                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {order.shippingAddress?.street}, {order.shippingAddress?.city}, {order.shippingAddress?.state}
+                  </dd>
+                </div>
+                <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt className="text-sm font-medium text-gray-500">Contact</dt>
+                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {order.shippingAddress?.phone} | {order.shippingAddress?.email}
+                  </dd>
+                </div>
+                <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt className="text-sm font-medium text-gray-500">Items</dt>
+                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    <ul role="list" className="border border-gray-200 rounded-md divide-y divide-gray-200">
+                      {order.products?.map((item) => (
+                        <li key={item._id || item.product} className="pl-3 pr-4 py-3 flex items-center justify-between text-sm">
+                          <div className="w-0 flex-1 flex items-center">
+                            <img
+                              src={item.product?.image}
+                              alt={item.product?.productName}
+                              className="h-10 w-10 flex-shrink-0 rounded-full"
+                            />
+                            <div className="ml-4 flex-1">
+                              <p className="text-sm font-medium text-gray-900">{item.product?.productName}</p>
+                              <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
+                            </div>
+                          </div>
+                          <div className="ml-4 flex-shrink-0">
+                            <p className="text-sm font-medium text-gray-900">GHS {item.price * item.quantity}</p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </dd>
+                </div>
+              </dl>
             </div>
-
-            <div className="mt-6">
-              <h3 className="text-sm font-medium text-gray-900">Shipping Address</h3>
-              <div className="mt-2 text-sm text-gray-500">
-                <p>{order.shippingAddress.firstName} {order.shippingAddress.lastName}</p>
-                <p>{order.shippingAddress.address}</p>
-                <p>
-                  {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}
-                </p>
-                <p>{order.shippingAddress.country}</p>
+            <div className="bg-gray-50 px-4 py-4 sm:px-6">
+              <div className="flex justify-end space-x-3">
+                <Link
+                  to={`/orders/${order._id}`}
+                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  View Details
+                </Link>
+                {order.status === 'Pending' && (
+                  <button
+                    onClick={() => handleCancelOrder(order._id)}
+                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  >
+                    Cancel Order
+                  </button>
+                )}
               </div>
             </div>
           </div>

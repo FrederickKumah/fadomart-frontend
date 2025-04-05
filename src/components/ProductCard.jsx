@@ -38,6 +38,20 @@ export default function ProductCard({ product }) {
     return 'Uncategorized';
   };
 
+  const isOutOfStock = (product) => {
+    // Check if the product exists and has stock information
+    if (!product) return true;
+    
+    // Check if stockStatus is explicitly "Out of Stock"
+    if (product.stockStatus === "Out of Stock") return true;
+    
+    // Check if quantity is 0 or less
+    if (product.quantity <= 0) return true;
+    
+    // If we get here, the item is in stock
+    return false;
+  };
+
   return (
     <div className="group relative">
       <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-md bg-gray-200 lg:aspect-none group-hover:opacity-75 lg:h-80">
@@ -74,6 +88,11 @@ export default function ProductCard({ product }) {
         <p className="ml-2 text-xs text-gray-500">
           {product.numReviews} {product.numReviews === 1 ? 'review' : 'reviews'}
         </p>
+      </div>
+      <div className="mt-1">
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isOutOfStock(product) ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+          {isOutOfStock(product) ? 'Out of Stock' : 'In Stock'}
+        </span>
       </div>
       <div className="mt-4">
         <button

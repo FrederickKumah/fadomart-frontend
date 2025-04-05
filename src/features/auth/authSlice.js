@@ -6,12 +6,66 @@ export const fetchUserProfile = createAsyncThunk(
   'auth/fetchUserProfile',
   async (_, { rejectWithValue }) => {
     try {
+      console.log('Fetching user profile...');
       const response = await authAPI.getProfile();
+      console.log('User profile fetched successfully:', response.data);
+      
+      // Check if the response has the expected structure
+      if (!response.data || typeof response.data !== 'object') {
+        console.error('Invalid user profile data:', response.data);
+        return rejectWithValue({
+          message: 'Invalid user profile data received from server',
+          status: 500
+        });
+      }
+      
+      // Log the user ID for debugging
+      console.log('User ID from profile:', response.data._id || response.data.id);
+      
       return response.data;
     } catch (error) {
       console.error('Profile fetch error:', error);
       return rejectWithValue({
         message: error.response?.data?.message || error.message || 'Failed to fetch profile',
+        status: error.response?.status
+      });
+    }
+  }
+);
+
+// New action to refresh user profile
+export const refreshUserProfile = createAsyncThunk(
+  'auth/refreshUserProfile',
+  async (_, { rejectWithValue, getState }) => {
+    try {
+      // Check if we have a token
+      const { auth } = getState();
+      if (!auth.token) {
+        console.error('No token available for profile refresh');
+        return rejectWithValue({ message: 'No authentication token available' });
+      }
+      
+      console.log('Refreshing user profile...');
+      const response = await authAPI.getProfile();
+      console.log('User profile refreshed successfully:', response.data);
+      
+      // Check if the response has the expected structure
+      if (!response.data || typeof response.data !== 'object') {
+        console.error('Invalid user profile data:', response.data);
+        return rejectWithValue({
+          message: 'Invalid user profile data received from server',
+          status: 500
+        });
+      }
+      
+      // Log the user ID for debugging
+      console.log('User ID from profile refresh:', response.data._id || response.data.id);
+      
+      return response.data;
+    } catch (error) {
+      console.error('Profile refresh error:', error);
+      return rejectWithValue({
+        message: error.response?.data?.message || error.message || 'Failed to refresh profile',
         status: error.response?.status
       });
     }
@@ -159,6 +213,11 @@ const authSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+    // Add a new action to manually set the user
+    setUser: (state, action) => {
+      state.user = action.payload;
+      state.isAuthenticated = !!action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -169,7 +228,23 @@ const authSlice = createSlice({
       })
       .addCase(fetchUserProfile.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload;
+        
+        // Check if the user data has an _id property, if not, try to use 'id'
+        const userData = action.payload;
+        if (userData && !userData._id && userData.id) {
+          console.log('Converting user.id to user._id');
+          userData._id = userData.id;
+        }
+        
+        state.user = userData;
+        state.isAuthenticated = true;
+        
+        // Log the user state after update
+        console.log('Updated user state:', {
+          hasUser: !!state.user,
+          userId: state.user?._id,
+          userEmail: state.user?.email
+        });
       })
       .addCase(fetchUserProfile.rejected, (state, action) => {
         state.loading = false;
@@ -181,6 +256,43 @@ const authSlice = createSlice({
           localStorage.removeItem('token');
         }
       })
+      
+      // Refresh User Profile
+      .addCase(refreshUserProfile.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(refreshUserProfile.fulfilled, (state, action) => {
+        state.loading = false;
+        
+        // Check if the user data has an _id property, if not, try to use 'id'
+        const userData = action.payload;
+        if (userData && !userData._id && userData.id) {
+          console.log('Converting user.id to user._id in refresh');
+          userData._id = userData.id;
+        }
+        
+        state.user = userData;
+        state.isAuthenticated = true;
+        
+        // Log the user state after update
+        console.log('Updated user state after refresh:', {
+          hasUser: !!state.user,
+          userId: state.user?._id,
+          userEmail: state.user?.email
+        });
+      })
+      .addCase(refreshUserProfile.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || 'Failed to refresh profile';
+        if (action.payload?.status === 401) {
+          state.isAuthenticated = false;
+          state.user = null;
+          state.token = null;
+          localStorage.removeItem('token');
+        }
+      })
+      
       // Login
       .addCase(login.pending, (state) => {
         state.loading = true;
@@ -220,5 +332,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError } = authSlice.actions;
+export const { clearError, setUser } = authSlice.actions;
 export default authSlice.reducer; 

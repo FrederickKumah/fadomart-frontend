@@ -440,9 +440,70 @@ export const cartAPI = {
 };
 
 export const ordersAPI = {
-  createOrder: (orderData) => api.post('/orders', orderData),
-  getOrders: () => api.get('/orders'),
-  getOrderById: (orderId) => api.get(`/orders/${orderId}`),
+  createOrder: async (orderData) => {
+    console.log('API - Creating order with data:', orderData);
+    console.log('API - Order data structure:', {
+      user: orderData.user,
+      productsCount: orderData.products.length,
+      products: orderData.products,
+      totalPrice: orderData.totalPrice,
+      shippingAddress: orderData.shippingAddress,
+      hasNotes: !!orderData.notes
+    });
+    
+    try {
+      const response = await api.post('/orders', orderData);
+      console.log('API - Order created successfully:', response.data);
+      return response;
+    } catch (error) {
+      console.error('API - Error creating order:', {
+        status: error.response?.status,
+        message: error.response?.data?.message || error.message,
+        data: error.response?.data
+      });
+      
+      // Log validation errors in detail
+      if (error.response?.status === 422) {
+        console.error('API - Validation errors:', error.response.data);
+        
+        if (error.response.data.errors && Array.isArray(error.response.data.errors)) {
+          error.response.data.errors.forEach(err => {
+            console.error(`API - Validation error: ${err.field || err.path} - ${err.message || err.msg}`);
+          });
+        } else if (error.response.data.details) {
+          if (Array.isArray(error.response.data.details)) {
+            error.response.data.details.forEach(err => {
+              console.error(`API - Validation error: ${err.field || err.path} - ${err.message || err.msg}`);
+            });
+          } else {
+            console.error('API - Validation error:', error.response.data.details);
+          }
+        }
+      }
+      
+      throw error;
+    }
+  },
+  getUserOrders: async () => {
+    console.log('API - Fetching user orders');
+    return await api.get('/orders/user');
+  },
+  getOrderById: async (orderId) => {
+    console.log('API - Fetching order by ID:', orderId);
+    return await api.get(`/orders/${orderId}`);
+  },
+  cancelOrder: async (orderId, reason) => {
+    console.log('API - Cancelling order:', orderId, 'with reason:', reason);
+    return await api.put(`/orders/${orderId}/cancel`, { reason });
+  },
+  initializePayment: async (orderId) => {
+    console.log('API - Initializing payment for order:', orderId);
+    return await api.post('/payment/initialize', { orderId });
+  },
+  verifyPayment: async (reference) => {
+    console.log('API - Verifying payment with reference:', reference);
+    return await api.get(`/payment/verify?reference=${reference}`);
+  }
 };
 
 export const userAPI = {
